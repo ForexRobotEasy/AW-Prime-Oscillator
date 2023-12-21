@@ -1,0 +1,89 @@
+
+//+------------------------------------------------------------------+
+//|                                                     AW Prime Oscillator |
+//|                                                       forexroboteasy.com |
+//|                                                  Forex Robot Easy Team |
+//+------------------------------------------------------------------+
+#property copyright 'forexroboteasy.com'
+#property link      'forexroboteasy.com'
+#property version   '1.00'
+
+//--- input parameters
+extern int    OscillatorPeriod1 = 14; // Period for the first oscillator
+extern int    OscillatorPeriod2 = 28; // Period for the second oscillator
+extern string DisplayMode = 'All'; // Display mode for signals ('All' or 'Trend')
+
+//--- indicator buffers
+double        OscillatorBuffer1[];
+double        OscillatorBuffer2[];
+
+//+------------------------------------------------------------------+
+//| Custom indicator initialization function                         |
+//+------------------------------------------------------------------+
+int OnInit()
+{
+   //--- indicator buffers mapping
+   SetIndexBuffer(0, OscillatorBuffer1, INDICATOR_DATA);
+   SetIndexBuffer(1, OscillatorBuffer2, INDICATOR_DATA);
+
+   //--- indicator short name
+   string shortName;
+   StringConcatenate(shortName, 'AW Prime Oscillator (', OscillatorPeriod1, ', ', OscillatorPeriod2, ')');
+   IndicatorSetString(INDICATOR_SHORTNAME, shortName);
+
+   //--- indicator digits
+   IndicatorSetInteger(INDICATOR_DIGITS, MarketInfo(Symbol(), MODE_DIGITS));
+
+   //--- return value of initialization function
+   return(INIT_SUCCEEDED);
+}
+
+//+------------------------------------------------------------------+
+//| Custom indicator iteration function                              |
+//+------------------------------------------------------------------+
+int OnCalculate(const int rates_total,
+                const int prev_calculated,
+                const datetime &time[],
+                const double &open[],
+                const double &high[],
+                const double &low[],
+                const double &close[],
+                const long &tick_volume[],
+                const long &volume[],
+                const int &spread[])
+{
+   int i;
+   int limit = rates_total - prev_calculated;
+
+   //--- calculate oscillator values
+   for(i = 0; i < limit; i++)
+   {
+      OscillatorBuffer1[i] = iCustom(Symbol(), 0, 'AW Prime Oscillator', OscillatorPeriod1, 0, i);
+      OscillatorBuffer2[i] = iCustom(Symbol(), 0, 'AW Prime Oscillator', OscillatorPeriod2, 1, i);
+   }
+
+   //--- draw arrows based on oscillator signals
+   if(DisplayMode == 'All')
+   {
+      for(i = limit - 1; i >= 0; i--)
+      {
+         if(OscillatorBuffer1[i] > OscillatorBuffer2[i])
+            Comment('Buy arrow signal at ', TimeToString(time[i]));
+         else if(OscillatorBuffer1[i] < OscillatorBuffer2[i])
+            Comment('Sell arrow signal at ', TimeToString(time[i]));
+      }
+   }
+   else if(DisplayMode == 'Trend')
+   {
+      for(i = limit - 1; i >= 0; i--)
+      {
+         if(OscillatorBuffer1[i] > OscillatorBuffer2[i] && OscillatorBuffer1[i-1] < OscillatorBuffer2[i-1])
+            Comment('Buy arrow signal at ', TimeToString(time[i]));
+         else if(OscillatorBuffer1[i] < OscillatorBuffer2[i] && OscillatorBuffer1[i-1] > OscillatorBuffer2[i-1])
+            Comment('Sell arrow signal at ', TimeToString(time[i]));
+      }
+   }
+
+   //--- return value of prev_calculated for next call
+   return(rates_total);
+}
